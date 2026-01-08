@@ -1,11 +1,8 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// --- PASTE YOUR REAL KEYS FROM FIREBASE CONSOLE HERE ---
 const firebaseConfig = {
   apiKey: "AIzaSyCtiE2RPEoudMdgh46q-YrP5eH81-cFAXs",
   authDomain: "energon-platform.firebaseapp.com",
@@ -16,29 +13,25 @@ const firebaseConfig = {
   measurementId: "G-5YB8X5X998"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-// 2. Initialize Firebase
+// 1. Initialize Firebase (This line must exist!)
 const app = initializeApp(firebaseConfig);
 
-// 3. Export Services for use in App.jsx
+// 2. Export Services
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// 4. Helper Function: Fetch Products from Firestore
+// 3. Helper to fetch data
 export const fetchProducts = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, "products"));
-    // Convert DB snapshot to the format our App uses
-    const productList = querySnapshot.docs.map(doc => ({
+    const list = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
-    return productList;
+    console.log("🔥 Firebase Data Loaded:", list);
+    return list;
   } catch (error) {
-    console.error("Error connecting to DB: ", error);
-    return []; // Return empty array on error
+    console.error("❌ Firebase Connection Error:", error);
+    return [];
   }
 };
