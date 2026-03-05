@@ -41,6 +41,40 @@ async function devMetalsHandler(req, res) {
   }
 }
 
+// Inline enquiry handler for dev server (mirrors api/enquiry.js logic)
+async function devEnquiryHandler(req, res, env) {
+  res.setHeader('Content-Type', 'application/json');
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    return res.end(JSON.stringify({ error: 'Method not allowed' }));
+  }
+  const resendKey = env.RESEND_API_KEY;
+  if (!resendKey) {
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: 'Email service not configured' }));
+  }
+  let body = '';
+  for await (const chunk of req) body += chunk;
+  const { buyerName, buyerPhone, buyerCompany, buyerAddress, cartItems, cartTotal } = JSON.parse(body || '{}');
+  const htmlItems = (cartItems || [])
+    .map(item => `<tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${item.name}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${item.brand}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${item.qty} ${item.unit}</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;">₹${(item.frozenPrice * item.qty).toLocaleString('en-IN')}</td></tr>`)
+    .join('');
+  const html = `<div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;"><div style="background:#166534;padding:20px 24px;border-radius:8px 8px 0 0;"><h1 style="color:#fff;margin:0;font-size:20px;">New Order Enquiry — Energon</h1></div><div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0;"><h2 style="font-size:15px;color:#166534;margin:0 0 16px;">Buyer Information</h2><table style="width:100%;border-collapse:collapse;margin-bottom:24px;"><tr><td style="padding:6px 0;color:#64748b;width:140px;">Name</td><td style="padding:6px 0;font-weight:600;">${buyerName||'—'}</td></tr><tr><td style="padding:6px 0;color:#64748b;">Phone</td><td style="padding:6px 0;font-weight:600;">${buyerPhone||'—'}</td></tr><tr><td style="padding:6px 0;color:#64748b;">Company</td><td style="padding:6px 0;font-weight:600;">${buyerCompany||'—'}</td></tr><tr><td style="padding:6px 0;color:#64748b;">Address</td><td style="padding:6px 0;font-weight:600;">${buyerAddress||'—'}</td></tr></table><h2 style="font-size:15px;color:#166534;margin:0 0 12px;">Order Items</h2><table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:14px;"><thead><tr style="background:#f1f5f9;"><th style="padding:8px 12px;text-align:left;color:#64748b;">Product</th><th style="padding:8px 12px;text-align:left;color:#64748b;">Brand</th><th style="padding:8px 12px;text-align:center;color:#64748b;">Qty</th><th style="padding:8px 12px;text-align:right;color:#64748b;">Amount</th></tr></thead><tbody>${htmlItems}</tbody><tfoot><tr style="background:#f0fdf4;"><td colspan="3" style="padding:10px 12px;font-weight:700;color:#166534;">Total</td><td style="padding:10px 12px;font-weight:700;color:#166534;text-align:right;">₹${Number(cartTotal||0).toLocaleString('en-IN')}</td></tr></tfoot></table></div></div>`;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
+      body: JSON.stringify({ from: 'Energon Orders <onboarding@resend.dev>', to: ['divye2014@gmail.com'], subject: `New Enquiry: ₹${Number(cartTotal||0).toLocaleString('en-IN')} from ${buyerName||'a buyer'}`, html }),
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'Resend error'); }
+    res.statusCode = 200;
+    res.end(JSON.stringify({ ok: true }));
+  } catch (err) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ error: err.message }));
+  }
+}
+
 // Inline news handler for dev server (mirrors api/news.js logic)
 async function devNewsHandler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -100,6 +134,9 @@ export default defineConfig(({ mode }) => {
             }
             if (req.url === '/api/news' || req.url?.startsWith('/api/news?')) {
               return devNewsHandler(req, res);
+            }
+            if (req.url === '/api/enquiry') {
+              return devEnquiryHandler(req, res, env);
             }
             next();
           });
