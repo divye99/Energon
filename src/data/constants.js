@@ -2,19 +2,12 @@
 export const USD_TO_INR = 84.00;
 export const BASE_LME_COPPER_USD = 12000;
 
-// --- Claude AI Helper (direct browser fetch) ---
+// --- Claude AI Helper (via /api/volt proxy to avoid CORS) ---
 const callClaude = async (systemPrompt, userMessage) => {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/volt', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-allow-browser': 'true',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 800,
