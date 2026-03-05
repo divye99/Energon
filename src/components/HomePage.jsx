@@ -15,7 +15,7 @@ const STATS = [
 const HOW_IT_WORKS = [
   { step: '01', title: 'Browse & Search', desc: 'Find wires, cables, switchgear, and metals at LME-linked prices. No hidden markups.' },
   { step: '02', title: 'Lock Your Price', desc: 'Price-lock for 48 hours protects your tender margin against copper fluctuations.' },
-  { step: '03', title: 'Order & Finance', desc: 'Place bulk orders with instant credit up to ₹25L via our embedded finance partners.' },
+  { step: '03', title: 'Order & Finance', desc: 'Place bulk orders with procurement credit tailored to your business — coming soon.' },
   { step: '04', title: 'Get Delivered', desc: 'Verified products with BIS certifications delivered in 24–48 hours to your site.' },
 ];
 
@@ -28,8 +28,8 @@ const VALUE_PROPS = [
   },
   {
     icon: CreditCard,
-    title: 'Embedded Credit',
-    desc: 'Get up to ₹25 Lakhs instant credit via Rupifi. 14-day interest-free period for verified contractors.',
+    title: 'Procurement Credit',
+    desc: 'Energon credit lines tailored to your order history — no collateral, no NBFC middlemen. Coming soon.',
     color: 'text-blue-600 bg-blue-50',
   },
   {
@@ -227,15 +227,23 @@ const HomePage = ({ setView, products, loading, getPrice, isLoggedIn, setActiveP
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-200">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-slate-50 rounded-xl p-8 border border-slate-200">
+          <div className="bg-slate-50 rounded-xl p-8 border border-slate-200 relative overflow-hidden">
+            <div className="absolute top-4 right-4">
+              <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-200">Coming Soon</span>
+            </div>
             <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-5">
               <CreditCard size={22} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">Need procurement credit?</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-3">Energon Procurement Credit</h3>
             <p className="text-slate-500 text-sm mb-5 leading-relaxed">
-              Get up to ₹25 Lakhs instant credit line via Rupifi. No collateral. 14-day interest-free for verified contractors.
+              Credit lines built on your Energon order history — not blanket NBFC partnerships. No collateral. Rates tied to your track record.
             </p>
-            <button className="btn-primary text-sm" onClick={() => setShowLoginModal(true)}>Check Eligibility →</button>
+            <button
+              className="btn-secondary text-sm opacity-70 cursor-not-allowed"
+              disabled
+            >
+              Notify Me When Live
+            </button>
           </div>
 
           <div className="bg-slate-50 rounded-xl p-8 border border-slate-200">

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 const Navbar = ({
-  lmeUsd, lmeInrKg, isSidebarOpen, setIsSidebarOpen, setIsMobileMenuOpen,
+  lmeUsd, lmeInrKg, mcxInrKg, changePct, isUp, isSidebarOpen, setIsSidebarOpen, setIsMobileMenuOpen,
   setView, searchQuery, setSearchQuery, performSearch, isLoggedIn, userRole,
   setIsProfileOpen, isProfileOpen, setShowLoginModal, cart, cartTotalQty, setIsCartOpen, setIsLoggedIn,
 }) => {
@@ -23,12 +23,20 @@ const Navbar = ({
     <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       {/* Ticker Tape */}
       <div className="bg-brand-green-dark text-white text-xs py-2 px-4 flex justify-between items-center">
-        <div className="flex gap-6 items-center">
-          <span className="flex items-center gap-2 font-mono text-emerald-300 font-bold">
-            <TrendingUp size={13} /> LME COPPER: ${lmeUsd.toFixed(2)}/MT
+        <div className="flex gap-4 items-center overflow-x-auto scrollbar-hide">
+          <span className="flex items-center gap-1.5 font-mono text-emerald-300 font-bold whitespace-nowrap">
+            <TrendingUp size={13} /> LME COPPER: ${lmeUsd?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/MT
           </span>
-          <span className="text-green-200 hidden sm:inline">|</span>
-          <span className="text-green-100 hidden sm:inline">≈ ₹{lmeInrKg.toFixed(2)}/kg</span>
+          <span className="text-green-300 hidden sm:inline">≈ ₹{lmeInrKg?.toFixed(0)}/kg</span>
+          <span className="text-green-200 hidden md:inline">|</span>
+          <span className="font-mono text-yellow-300 font-bold hidden md:inline whitespace-nowrap">
+            MCX COPPER: ₹{mcxInrKg?.toFixed(0)}/kg
+          </span>
+          {changePct !== undefined && (
+            <span className={`hidden lg:inline text-xs font-semibold px-1.5 py-0.5 rounded ${isUp ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'}`}>
+              {isUp ? '▲' : '▼'} {Math.abs(changePct).toFixed(2)}%
+            </span>
+          )}
         </div>
         <div className="hidden md:flex gap-6 text-green-200 font-medium items-center">
           <span className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer">

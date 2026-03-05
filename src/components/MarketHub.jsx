@@ -1,14 +1,38 @@
-import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, BarChart3, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, BarChart3, Info, ExternalLink, RefreshCw } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { CHART_DATA, NEWS_UPDATES } from '../data/constants';
+import { CHART_DATA } from '../data/constants';
 
-const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
+const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008, mcxInrKg = 1042, changePct = 0, isUp = true }) => {
   const [activeMetal, setActiveMetal] = useState('copper');
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsUpdatedAt, setNewsUpdatedAt] = useState(null);
 
-  // Update last copper data point with live simulated price
+  // Fetch real news from RSS-backed API
+  useEffect(() => {
+    const fetchNews = async () => {
+      setNewsLoading(true);
+      try {
+        const res = await fetch('/api/news');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.articles?.length > 0) {
+            setNews(data.articles);
+            setNewsUpdatedAt(data.fetchedAt);
+          }
+        }
+      } catch { /* keep empty */ }
+      setNewsLoading(false);
+    };
+    fetchNews();
+    const interval = setInterval(fetchNews, 15 * 60 * 1000); // refresh every 15 min
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update last copper data point with live price
   const liveChartData = {
     ...CHART_DATA,
     copper: [
@@ -20,7 +44,8 @@ const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
   const CHART_CONFIG = {
     copper: {
       title: 'Copper (LME)', unit: 'USD/MT', color: '#16A34A',
-      data: liveChartData.copper, change: '+2.4%', positive: true,
+      data: liveChartData.copper,
+      change: `${isUp ? '+' : ''}${changePct?.toFixed(2) || '0.00'}%`, positive: isUp,
       livePrice: Math.round(lmeUsd),
     },
     steel: {
@@ -57,11 +82,19 @@ const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
       <div className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Market Intelligence Hub</h1>
-          <p className="text-slate-500 text-sm mt-1">Live commodity prices · Updated every 5 seconds</p>
+          <p className="text-slate-500 text-sm mt-1">Live commodity prices · Refreshed every 60 seconds</p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-xs text-brand-green font-semibold bg-brand-green-light px-3 py-1.5 rounded-full border border-brand-green/20">
-          <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
-          LME Live: ${lmeUsd.toFixed(0)}/MT · ₹{lmeInrKg.toFixed(0)}/kg
+        <div className="hidden sm:flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2 text-xs text-brand-green font-semibold bg-brand-green-light px-3 py-1.5 rounded-full border border-brand-green/20">
+            <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+            LME: ${Math.round(lmeUsd).toLocaleString()}/MT · ₹{Math.round(lmeInrKg)}/kg
+          </div>
+          <div className="flex items-center gap-2 text-xs text-yellow-700 font-semibold bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200">
+            MCX: ₹{Math.round(mcxInrKg)}/kg
+            <span className={`font-bold ${isUp ? 'text-green-600' : 'text-red-500'}`}>
+              {isUp ? '▲' : '▼'} {Math.abs(changePct).toFixed(2)}%
+            </span>
+          </div>
         </div>
       </div>
 
@@ -84,8 +117,11 @@ const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
             <div className="text-xs text-slate-400 mb-2">{cfg.unit}</div>
             <div className={`flex items-center gap-1 text-xs font-semibold ${cfg.positive ? 'text-brand-green' : 'text-red-500'}`}>
               {cfg.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-              {cfg.change} this week
+              {cfg.change} {key === 'copper' ? 'today' : 'this week'}
             </div>
+            {key === 'copper' && (
+              <div className="text-xs text-yellow-600 font-medium mt-1">MCX ₹{Math.round(mcxInrKg)}/kg</div>
+            )}
           </button>
         ))}
       </div>
@@ -105,7 +141,7 @@ const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
               <span className="text-xs text-slate-400 font-medium">{current.unit}</span>
               {activeMetal === 'copper' && (
                 <div className="text-xs text-brand-green font-semibold mt-0.5 flex items-center gap-1 justify-end">
-                  <span className="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse" /> Live
+                  <span className="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse" /> Live (Yahoo Finance)
                 </div>
               )}
             </div>
@@ -139,25 +175,60 @@ const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
 
         {/* News */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <BarChart3 size={17} className="text-brand-green" /> Market News
-          </h3>
-          <div className="space-y-4">
-            {NEWS_UPDATES.map(news => (
-              <div key={news.id} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
-                <p className="text-sm font-medium text-slate-800 leading-snug mb-1">{news.title}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-brand-green font-medium">{news.source}</span>
-                  <span className="text-xs text-slate-400">{news.time}</span>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <BarChart3 size={17} className="text-brand-green" /> Market News
+            </h3>
+            {newsUpdatedAt && (
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                <RefreshCw size={10} />
+                {new Date(newsUpdatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
           </div>
 
-          <div className="mt-6 p-4 bg-brand-green-light border border-brand-green/20 rounded-lg">
+          {newsLoading ? (
+            <div className="space-y-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="border-b border-slate-100 pb-4 animate-pulse">
+                  <div className="h-3 bg-slate-200 rounded w-full mb-2" />
+                  <div className="h-3 bg-slate-200 rounded w-3/4 mb-2" />
+                  <div className="h-2 bg-slate-100 rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : news.length > 0 ? (
+            <div className="space-y-4 overflow-y-auto max-h-[320px] pr-1">
+              {news.map((article, i) => (
+                <div key={i} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+                  <a
+                    href={article.link || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-slate-800 leading-snug mb-1 hover:text-brand-green transition-colors flex items-start gap-1 group"
+                  >
+                    {article.title}
+                    <ExternalLink size={10} className="shrink-0 mt-1 opacity-0 group-hover:opacity-60 transition-opacity" />
+                  </a>
+                  {article.description && (
+                    <p className="text-xs text-slate-500 leading-relaxed mb-1 line-clamp-2">{article.description}</p>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-brand-green font-medium">{article.source}</span>
+                    <span className="text-xs text-slate-400">{article.timeLabel || article.pubDate}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 text-center py-8">No news available right now.</p>
+          )}
+
+          <div className="mt-4 p-4 bg-brand-green-light border border-brand-green/20 rounded-lg">
             <p className="text-xs font-semibold text-brand-green-dark mb-1">Procurement Tip</p>
             <p className="text-xs text-green-800 leading-relaxed">
-              Copper is at ${lmeUsd.toFixed(0)}/MT live. Consider locking prices now for pending tenders before further movement.
+              LME copper at ${Math.round(lmeUsd).toLocaleString()}/MT · MCX at ₹{Math.round(mcxInrKg)}/kg.
+              {isUp ? ' Prices trending up — consider locking rates for pending tenders.' : ' Prices easing — good time to negotiate bulk rates.'}
             </p>
           </div>
         </div>

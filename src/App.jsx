@@ -51,6 +51,9 @@ const App = () => {
   const [otp, setOtp] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  // Enquiry
+  const [enquiryState, setEnquiryState] = useState('idle'); // idle | loading | success | error
+
   // Compare
   const [compareList, setCompareList] = useState([]);
 
@@ -64,9 +67,12 @@ const App = () => {
     { id: 2, name: 'Site Office', text: 'B-Block Construction Gate, Noida Sec 62, UP', type: 'Site' },
   ]);
 
-  // LME pricing
+  // LME / MCX pricing (real-time from Yahoo Finance via /api/metals)
   const [lmeUsd, setLmeUsd] = useState(BASE_LME_COPPER_USD);
   const [lmeInrKg, setLmeInrKg] = useState((BASE_LME_COPPER_USD * USD_TO_INR) / 1000);
+  const [mcxInrKg, setMcxInrKg] = useState(Math.round(BASE_LME_COPPER_USD * USD_TO_INR * 1.034 / 1000));
+  const [metalChangePct, setMetalChangePct] = useState(0);
+  const [metalIsUp, setMetalIsUp] = useState(true);
 
   // --- Load Products ---
   useEffect(() => {
@@ -125,16 +131,24 @@ const App = () => {
     } catch { /* ignore */ }
   }, [cart]);
 
-  // --- LME price simulation ---
+  // --- Live LME / MCX prices from Yahoo Finance ---
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLmeUsd(prev => {
-        const fluctuation = (Math.random() - 0.5) * 50;
-        const newUsd = Math.max(11000, prev + fluctuation);
-        setLmeInrKg((newUsd * USD_TO_INR) / 1000);
-        return newUsd;
-      });
-    }, 5000);
+    const fetchMetals = async () => {
+      try {
+        const res = await fetch('/api/metals');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.copper) {
+          setLmeUsd(data.copper.lme_usd_mt);
+          setLmeInrKg(data.copper.lme_inr_kg);
+          setMcxInrKg(data.copper.mcx_inr_kg);
+          setMetalChangePct(data.copper.change_pct);
+          setMetalIsUp(data.copper.is_up);
+        }
+      } catch { /* keep previous values */ }
+    };
+    fetchMetals();
+    const interval = setInterval(fetchMetals, 60000); // refresh every 60s
     return () => clearInterval(interval);
   }, []);
 
@@ -235,6 +249,9 @@ const App = () => {
       <Navbar
         lmeUsd={lmeUsd}
         lmeInrKg={lmeInrKg}
+        mcxInrKg={mcxInrKg}
+        changePct={metalChangePct}
+        isUp={metalIsUp}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
@@ -304,7 +321,7 @@ const App = () => {
                   setCompareList={setCompareList}
                 />
               )}
-              {view === 'market_hub' && <MarketHub lmeUsd={lmeUsd} lmeInrKg={lmeInrKg} />}
+              {view === 'market_hub' && <MarketHub lmeUsd={lmeUsd} lmeInrKg={lmeInrKg} mcxInrKg={mcxInrKg} changePct={metalChangePct} isUp={metalIsUp} />}
               {view === 'product_detail' && (
                 <ProductDetailPage
                   product={products.find(p => p.id === activeProductId)}
@@ -419,16 +436,45 @@ const App = () => {
                 <Save size={15} /> Save as Project
               </button>
               <button
-                className="w-full btn-primary py-3 text-sm"
-                onClick={() => {
+                className="w-full btn-primary py-3 text-sm flex items-center justify-center gap-2"
+                disabled={enquiryState === 'loading'}
+                onClick={async () => {
                   if (!isLoggedIn) { setIsCartOpen(false); setShowLoginModal(true); return; }
-                  alert(`Order placed! Total: ₹${cart.reduce((a, b) => a + (b.frozenPrice * b.qty), 0).toLocaleString()}\n\nOur team will confirm your order within 2 hours.`);
-                  setCart([]);
-                  setIsCartOpen(false);
+                  setEnquiryState('loading');
+                  const cartTotal = cart.reduce((a, b) => a + (b.frozenPrice * b.qty), 0);
+                  try {
+                    const res = await fetch('/api/enquiry', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        buyerName: addresses[0]?.name || 'Contractor',
+                        buyerPhone: mobileNumber || '—',
+                        buyerCompany: addresses[0]?.text || '—',
+                        buyerAddress: addresses[0]?.text || '—',
+                        cartItems: cart,
+                        cartTotal,
+                      }),
+                    });
+                    if (res.ok) {
+                      setEnquiryState('success');
+                      setCart([]);
+                      setTimeout(() => { setEnquiryState('idle'); setIsCartOpen(false); }, 3500);
+                    } else {
+                      setEnquiryState('error');
+                      setTimeout(() => setEnquiryState('idle'), 3000);
+                    }
+                  } catch {
+                    setEnquiryState('error');
+                    setTimeout(() => setEnquiryState('idle'), 3000);
+                  }
                 }}
               >
-                Proceed to Checkout
+                {enquiryState === 'loading' && <Loader2 size={15} className="animate-spin" />}
+                {enquiryState === 'loading' ? 'Sending Enquiry…' : enquiryState === 'success' ? '✓ Enquiry Sent!' : enquiryState === 'error' ? 'Failed — Try Again' : 'Send Enquiry →'}
               </button>
+              {enquiryState === 'success' && (
+                <p className="text-xs text-center text-brand-green font-medium">Our team will call you within 2 hours to confirm.</p>
+              )}
             </div>
           )}
         </div>
