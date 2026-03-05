@@ -5,6 +5,7 @@ import { summarizeReviews } from '../data/constants';
 const ProductDetailPage = ({ product, getPrice, isLoggedIn, addToCart, setShowLoginModal, setView, setActiveProductId, products, lmeUsd, addReview }) => {
   const [selectedVariant, setSelectedVariant] = useState(product?.hasVariants ? product.variants[0] : null);
   const [selectedImg, setSelectedImg] = useState(0);
+  const [qty, setQty] = useState(1);
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [userRating, setUserRating] = useState(0);
@@ -244,10 +245,32 @@ const ProductDetailPage = ({ product, getPrice, isLoggedIn, addToCart, setShowLo
                 )}
               </div>
 
+              <div className="mb-4 flex items-center gap-1 text-xs text-brand-green font-semibold">
+                <span className="w-2 h-2 bg-brand-green rounded-full" /> In Stock · Ships 24–48 hrs
+              </div>
+
+              {isLoggedIn && (
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-sm font-medium text-slate-600 shrink-0">Qty:</span>
+                  <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setQty(q => Math.max(1, q - 1))}
+                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base transition-colors"
+                    >−</button>
+                    <span className="px-4 py-2 text-sm font-semibold text-slate-900 min-w-[3rem] text-center border-x border-slate-200">{qty}</span>
+                    <button
+                      onClick={() => setQty(q => q + 1)}
+                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-base transition-colors"
+                    >+</button>
+                  </div>
+                  <span className="text-xs text-slate-400">{product.unit}</span>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {isLoggedIn ? (
-                  <button onClick={() => addToCart(product, 1, selectedVariant)} className="w-full btn-primary py-3 text-sm">
-                    Add to Cart
+                  <button onClick={() => addToCart(product, qty, selectedVariant)} className="w-full btn-primary py-3 text-sm">
+                    Add {qty > 1 ? `${qty} × ` : ''}to Cart
                   </button>
                 ) : (
                   <button onClick={() => setShowLoginModal(true)} className="w-full btn-primary py-3 text-sm">

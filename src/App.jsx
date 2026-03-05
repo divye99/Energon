@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2 } from 'lucide-react';
+import { X, Save, Loader2, Minus, Plus } from 'lucide-react';
 
 import { MOCK_DB_PRODUCTS, BASE_LME_COPPER_USD, USD_TO_INR } from './data/constants';
 import { fetchProducts } from './supabase-config';
@@ -10,7 +10,6 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import VoltChatbot from './components/VoltChatbot';
 import ComparisonWidget from './components/ComparisonWidget';
-import ProductCard from './components/ProductCard';
 
 import HomePage from './components/HomePage';
 import AllProductsPage from './components/AllProductsPage';
@@ -91,6 +90,41 @@ const App = () => {
     load();
   }, []);
 
+  // --- Persist auth across refresh ---
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('energon_auth');
+      if (saved) {
+        const { isLoggedIn: li, userRole: ur, mobileNumber: mn } = JSON.parse(saved);
+        if (li) { setIsLoggedIn(li); setUserRole(ur || 'user'); setMobileNumber(mn || ''); }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (isLoggedIn) {
+        localStorage.setItem('energon_auth', JSON.stringify({ isLoggedIn, userRole, mobileNumber }));
+      } else {
+        localStorage.removeItem('energon_auth');
+      }
+    } catch { /* ignore */ }
+  }, [isLoggedIn, userRole, mobileNumber]);
+
+  // --- Persist cart across refresh ---
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('energon_cart');
+      if (saved) setCart(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('energon_cart', JSON.stringify(cart));
+    } catch { /* ignore */ }
+  }, [cart]);
+
   // --- LME price simulation ---
   useEffect(() => {
     const interval = setInterval(() => {
@@ -107,14 +141,18 @@ const App = () => {
   // --- Pricing ---
   const getPrice = (product, type = 'wholesale', variant = null) => {
     if (!product) return 0;
+    const modifier = variant?.modifier || 1;
     if (product.isDynamic) {
-      let copperWeight = (product.copperWeightKg || 0) * (variant?.modifier || 1);
-      let baseMfg = (product.baseMfgCost || 0) * (variant?.modifier || 1);
+      const copperWeight = (product.copperWeightKg || 0) * modifier;
+      const baseMfg = (product.baseMfgCost || 0) * modifier;
       const copperCost = copperWeight * lmeInrKg;
       const markup = type === 'wholesale' ? (product.wholesaleMarkup || 1.1) : (product.retailMarkup || 1.3);
       return Math.ceil((baseMfg + copperCost) * markup);
     }
-    return type === 'wholesale' ? (product.wholesalePrice || 0) : (product.retailPrice || 0);
+    // Fixed-price products: compute from baseMfgCost × markup
+    const base = (product.baseMfgCost || 0) * modifier;
+    const markup = type === 'wholesale' ? (product.wholesaleMarkup || 1.2) : (product.retailMarkup || 1.4);
+    return Math.ceil(base * markup);
   };
 
   // --- Cart ---
@@ -131,6 +169,17 @@ const App = () => {
     });
     setIsCartOpen(true);
   };
+
+  const removeFromCart = (cartId) => {
+    setCart(prev => prev.filter(item => item.cartId !== cartId));
+  };
+
+  const updateCartQty = (cartId, newQty) => {
+    if (newQty < 1) { removeFromCart(cartId); return; }
+    setCart(prev => prev.map(item => item.cartId === cartId ? { ...item, qty: newQty } : item));
+  };
+
+  const cartTotalQty = cart.reduce((a, b) => a + b.qty, 0);
 
   // --- Reviews ---
   const addReview = (productId, reviewData) => {
@@ -156,7 +205,6 @@ const App = () => {
           setIsLoggedIn(true);
           setShowLoginModal(false);
           setLoginStep(1);
-          setMobileNumber('');
           setOtp('');
           setUserRole(mobileNumber === '9999999999' ? 'admin' : 'user');
         } else {
@@ -200,6 +248,7 @@ const App = () => {
         isProfileOpen={isProfileOpen}
         setShowLoginModal={setShowLoginModal}
         cart={cart}
+        cartTotalQty={cartTotalQty}
         setIsCartOpen={setIsCartOpen}
         setIsLoggedIn={setIsLoggedIn}
         products={products}
@@ -255,7 +304,7 @@ const App = () => {
                   setCompareList={setCompareList}
                 />
               )}
-              {view === 'market_hub' && <MarketHub />}
+              {view === 'market_hub' && <MarketHub lmeUsd={lmeUsd} lmeInrKg={lmeInrKg} />}
               {view === 'product_detail' && (
                 <ProductDetailPage
                   product={products.find(p => p.id === activeProductId)}
@@ -270,10 +319,25 @@ const App = () => {
                   addReview={addReview}
                 />
               )}
-              {view === 'profile' && <ProfilePage savedProjects={savedProjects} addresses={addresses} setAddresses={setAddresses} setView={setView} />}
+              {view === 'profile' && (
+                <ProfilePage
+                  savedProjects={savedProjects}
+                  addresses={addresses}
+                  setAddresses={setAddresses}
+                  setView={setView}
+                  userPhone={mobileNumber}
+                />
+              )}
               {view === 'admin_dashboard' && <AdminDashboard products={products} />}
               {view === 'about_us' && <AboutUs />}
-              {view === 'quick_order' && <QuickOrder setCart={setCart} setIsCartOpen={setIsCartOpen} products={products} getPrice={getPrice} />}
+              {view === 'quick_order' && (
+                <QuickOrder
+                  setCart={setCart}
+                  setIsCartOpen={setIsCartOpen}
+                  products={products}
+                  getPrice={getPrice}
+                />
+              )}
               {view === 'smart_planner' && <SmartPlanner products={products} addToCart={addToCart} />}
             </div>
             <Footer setView={setView} />
@@ -290,7 +354,7 @@ const App = () => {
         <div className="absolute inset-0 bg-black/40" onClick={() => setIsCartOpen(false)} />
         <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
           <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-            <h3 className="font-bold text-slate-900">Cart ({cart.length})</h3>
+            <h3 className="font-bold text-slate-900">Cart ({cartTotalQty} item{cartTotalQty !== 1 ? 's' : ''})</h3>
             <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
               <X size={18} />
             </button>
@@ -302,17 +366,40 @@ const App = () => {
                 <p>Your cart is empty</p>
               </div>
             ) : (
-              cart.map((item, i) => (
-                <div key={i} className="flex gap-4 border-b border-slate-100 pb-4">
+              cart.map((item) => (
+                <div key={item.cartId} className="flex gap-3 border-b border-slate-100 pb-4">
                   <img
                     src={item.images?.[0] || ''}
-                    className="w-16 h-16 object-contain border border-slate-200 rounded-lg bg-slate-50 p-1"
+                    className="w-14 h-14 object-contain border border-slate-200 rounded-lg bg-slate-50 p-1 shrink-0"
                     alt=""
                   />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-slate-800 line-clamp-2">{item.name}</div>
-                    <div className="text-xs text-slate-500 mt-1">Qty: {item.qty} × ₹{item.frozenPrice}</div>
-                    <div className="font-bold text-slate-900 mt-1">₹{(item.frozenPrice * item.qty).toLocaleString()}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">₹{item.frozenPrice}/{item.unit || 'unit'}</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={() => updateCartQty(item.cartId, item.qty - 1)}
+                        className="w-7 h-7 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="text-sm font-semibold w-6 text-center">{item.qty}</span>
+                      <button
+                        onClick={() => updateCartQty(item.cartId, item.qty + 1)}
+                        className="w-7 h-7 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end justify-between shrink-0">
+                    <button
+                      onClick={() => removeFromCart(item.cartId)}
+                      className="text-slate-300 hover:text-red-400 transition-colors p-1"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="font-bold text-slate-900 text-sm">₹{(item.frozenPrice * item.qty).toLocaleString()}</div>
                   </div>
                 </div>
               ))

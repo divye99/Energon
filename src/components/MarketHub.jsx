@@ -5,15 +5,41 @@ import {
 } from 'recharts';
 import { CHART_DATA, NEWS_UPDATES } from '../data/constants';
 
-const CHART_CONFIG = {
-  copper:   { title: 'Copper (LME)',  unit: 'USD/MT',  color: '#16A34A', data: CHART_DATA.copper,   change: '+2.4%', positive: true },
-  steel:    { title: 'Steel (TMT)',   unit: 'INR/Ton', color: '#64748b', data: CHART_DATA.steel,    change: '-0.5%', positive: false },
-  aluminum: { title: 'Aluminum',      unit: 'USD/MT',  color: '#3b82f6', data: CHART_DATA.aluminum, change: '+1.1%', positive: true },
-  pvc:      { title: 'PVC Resin',     unit: 'INR/Kg',  color: '#f59e0b', data: CHART_DATA.pvc,      change: '+0.2%', positive: true },
-};
-
-const MarketHub = () => {
+const MarketHub = ({ lmeUsd = 12000, lmeInrKg = 1008 }) => {
   const [activeMetal, setActiveMetal] = useState('copper');
+
+  // Update last copper data point with live simulated price
+  const liveChartData = {
+    ...CHART_DATA,
+    copper: [
+      ...CHART_DATA.copper.slice(0, -1),
+      { name: 'Live', price: Math.round(lmeUsd) },
+    ],
+  };
+
+  const CHART_CONFIG = {
+    copper: {
+      title: 'Copper (LME)', unit: 'USD/MT', color: '#16A34A',
+      data: liveChartData.copper, change: '+2.4%', positive: true,
+      livePrice: Math.round(lmeUsd),
+    },
+    steel: {
+      title: 'Steel (TMT)', unit: 'INR/Ton', color: '#64748b',
+      data: CHART_DATA.steel, change: '-0.5%', positive: false,
+      livePrice: CHART_DATA.steel[CHART_DATA.steel.length - 1].price,
+    },
+    aluminum: {
+      title: 'Aluminum', unit: 'USD/MT', color: '#3b82f6',
+      data: CHART_DATA.aluminum, change: '+1.1%', positive: true,
+      livePrice: CHART_DATA.aluminum[CHART_DATA.aluminum.length - 1].price,
+    },
+    pvc: {
+      title: 'PVC Resin', unit: 'INR/Kg', color: '#f59e0b',
+      data: CHART_DATA.pvc, change: '+0.2%', positive: true,
+      livePrice: CHART_DATA.pvc[CHART_DATA.pvc.length - 1].price,
+    },
+  };
+
   const current = CHART_CONFIG[activeMetal];
 
   return (
@@ -28,9 +54,15 @@ const MarketHub = () => {
         </div>
       </div>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Market Intelligence Hub</h1>
-        <p className="text-slate-500 text-sm mt-1">Live commodity prices · Updated every 5 seconds</p>
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Market Intelligence Hub</h1>
+          <p className="text-slate-500 text-sm mt-1">Live commodity prices · Updated every 5 seconds</p>
+        </div>
+        <div className="hidden sm:flex items-center gap-2 text-xs text-brand-green font-semibold bg-brand-green-light px-3 py-1.5 rounded-full border border-brand-green/20">
+          <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
+          LME Live: ${lmeUsd.toFixed(0)}/MT · ₹{lmeInrKg.toFixed(0)}/kg
+        </div>
       </div>
 
       {/* Price summary cards */}
@@ -47,7 +79,7 @@ const MarketHub = () => {
           >
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{cfg.title}</div>
             <div className="text-lg font-bold text-slate-900">
-              {cfg.data[cfg.data.length - 1].price.toLocaleString()}
+              {cfg.livePrice.toLocaleString()}
             </div>
             <div className="text-xs text-slate-400 mb-2">{cfg.unit}</div>
             <div className={`flex items-center gap-1 text-xs font-semibold ${cfg.positive ? 'text-brand-green' : 'text-red-500'}`}>
@@ -69,7 +101,14 @@ const MarketHub = () => {
                 {current.change} · 7-day trend
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-medium">{current.unit}</span>
+            <div className="text-right">
+              <span className="text-xs text-slate-400 font-medium">{current.unit}</span>
+              {activeMetal === 'copper' && (
+                <div className="text-xs text-brand-green font-semibold mt-0.5 flex items-center gap-1 justify-end">
+                  <span className="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse" /> Live
+                </div>
+              )}
+            </div>
           </div>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -116,9 +155,9 @@ const MarketHub = () => {
           </div>
 
           <div className="mt-6 p-4 bg-brand-green-light border border-brand-green/20 rounded-lg">
-            <p className="text-xs font-semibold text-brand-green-dark mb-1">💡 Procurement Tip</p>
+            <p className="text-xs font-semibold text-brand-green-dark mb-1">Procurement Tip</p>
             <p className="text-xs text-green-800 leading-relaxed">
-              Copper is up 2.4% this week. Consider locking prices now for pending tenders before further movement.
+              Copper is at ${lmeUsd.toFixed(0)}/MT live. Consider locking prices now for pending tenders before further movement.
             </p>
           </div>
         </div>

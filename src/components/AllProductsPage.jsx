@@ -8,9 +8,13 @@ const AllProductsPage = ({ products, searchQuery, setSearchQuery, setView, getPr
   const [activeCategory, setActiveCategory] = React.useState('All');
 
   const filtered = products.filter(p => {
-    const matchSearch =
-      (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q ||
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.brand || '').toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q) ||
+      Object.values(p.specs || {}).some(v => String(v).toLowerCase().includes(q));
     const matchCategory = activeCategory === 'All' || p.category === activeCategory;
     return matchSearch && matchCategory;
   });

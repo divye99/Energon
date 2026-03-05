@@ -1,27 +1,48 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, BrainCircuit } from 'lucide-react';
+import { Sparkles, Loader2, BrainCircuit, Info } from 'lucide-react';
+import { generateBoM } from '../data/constants';
 
 const SmartPlanner = ({ products, addToCart }) => {
   const [description, setDescription] = useState('');
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleGenerate = () => {
+  const hasAI = !!import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+  const handleGenerate = async () => {
     if (!description.trim()) return;
     setLoading(true);
-    setTimeout(() => {
-      setPlan({ items: [{ id: products[0]?.id || 'prod_001', qty: 10, reason: 'Estimated based on project description' }] });
-      setLoading(false);
-    }, 1500);
+    setError(null);
+    setPlan(null);
+
+    const items = await generateBoM(description, products);
+
+    if (items && items.length > 0) {
+      const validItems = items.filter(item => products.find(p => p.id === item.id));
+      setPlan({ items: validItems.length > 0 ? validItems : items });
+    } else if (!hasAI) {
+      setPlan({
+        items: products.slice(0, 3).map((p, i) => ({
+          id: p.id,
+          qty: [10, 5, 20][i] || 10,
+          reason: 'Demo estimate — add VITE_ANTHROPIC_API_KEY for real AI generation',
+        })),
+      });
+    } else {
+      setError('Could not generate a BoM. Try a more specific project description.');
+    }
+    setLoading(false);
   };
 
   const handleAddAll = () => {
     if (!plan?.items) return;
+    let added = 0;
     plan.items.forEach(item => {
       const product = products.find(p => p.id === item.id);
-      if (product) addToCart(product, item.qty);
+      if (product) { addToCart(product, item.qty); added++; }
     });
-    alert(`Added ${plan.items.length} items to cart!`);
+    if (added > 0) alert(`Added ${added} item${added > 1 ? 's' : ''} to cart!`);
   };
 
   return (
@@ -35,6 +56,15 @@ const SmartPlanner = ({ products, addToCart }) => {
           Don't have a BOQ? Describe your project and our AI will generate a Bill of Materials — quantities, specs, and all.
         </p>
       </div>
+
+      {!hasAI && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-700">
+            <strong>Demo mode:</strong> Add <code className="bg-amber-100 px-1 rounded">VITE_ANTHROPIC_API_KEY</code> to your environment to enable real AI-powered BoM generation.
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
         <label className="block text-sm font-semibold text-slate-700 mb-2">Project Description</label>
@@ -50,23 +80,25 @@ const SmartPlanner = ({ products, addToCart }) => {
           className="mt-4 w-full btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? <Loader2 size={17} className="animate-spin" /> : <Sparkles size={17} />}
-          Generate Bill of Materials
+          {loading ? 'Generating BoM...' : 'Generate Bill of Materials'}
         </button>
+        {error && <p className="mt-3 text-sm text-red-500 text-center">{error}</p>}
       </div>
 
-      {plan?.items && (
+      {plan?.items && plan.items.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 animate-slide-up">
           <h3 className="font-bold text-lg text-slate-900 mb-5">Estimated Bill of Materials</h3>
           <div className="space-y-3 mb-6">
             {plan.items.map((item, i) => {
               const product = products.find(p => p.id === item.id);
               return (
-                <div key={i} className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <div>
+                <div key={i} className="flex justify-between items-start p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex-1 pr-4">
                     <div className="font-semibold text-slate-900 text-sm">{product?.name || item.id}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{item.reason}</div>
+                    {product && <div className="text-xs text-slate-400 mt-0.5">{product.brand} · {product.unit}</div>}
+                    <div className="text-xs text-slate-500 mt-1 italic">{item.reason}</div>
                   </div>
-                  <div className="text-sm font-semibold text-slate-700 bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                  <div className="text-sm font-semibold text-slate-700 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shrink-0">
                     Qty: {item.qty}
                   </div>
                 </div>

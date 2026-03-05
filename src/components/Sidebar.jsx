@@ -40,7 +40,7 @@ export const Sidebar = ({ isOpen, setView, view, isLoggedIn, userRole }) => {
       </div>
       {isOpen && (
         <div className="p-4 text-xs text-slate-400 border-t border-slate-100">
-          <p className="font-semibold text-slate-500">© 2025 Energon</p>
+          <p className="font-semibold text-slate-500">© 2026 Energon</p>
         </div>
       )}
     </aside>

@@ -7,7 +7,7 @@ import {
 const Navbar = ({
   lmeUsd, lmeInrKg, isSidebarOpen, setIsSidebarOpen, setIsMobileMenuOpen,
   setView, searchQuery, setSearchQuery, performSearch, isLoggedIn, userRole,
-  setIsProfileOpen, isProfileOpen, setShowLoginModal, cart, setIsCartOpen, setIsLoggedIn,
+  setIsProfileOpen, isProfileOpen, setShowLoginModal, cart, cartTotalQty, setIsCartOpen, setIsLoggedIn,
 }) => {
   const [showAiSearch, setShowAiSearch] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
@@ -172,9 +172,9 @@ const Navbar = ({
             className="relative text-slate-600 hover:text-brand-green p-2.5 rounded-lg hover:bg-brand-green-light transition-colors"
           >
             <ShoppingCart size={22} />
-            {cart.length > 0 && (
+            {cartTotalQty > 0 && (
               <span className="absolute -top-1 -right-1 bg-brand-green text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                {cart.length}
+                {cartTotalQty}
               </span>
             )}
           </button>
