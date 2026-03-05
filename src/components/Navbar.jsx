@@ -11,6 +11,7 @@ const Navbar = ({
 }) => {
   const [showAiSearch, setShowAiSearch] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const handleAiSearch = () => {
     performSearch(aiQuery);
@@ -111,7 +112,7 @@ const Navbar = ({
         </div>
 
         {/* Mobile search icon */}
-        <button className="md:hidden p-2 text-slate-600" onClick={() => performSearch('')}>
+        <button className="md:hidden p-2 text-slate-600" onClick={() => setShowMobileSearch(s => !s)}>
           <Search size={22} />
         </button>
 
@@ -179,6 +180,29 @@ const Navbar = ({
           </button>
         </div>
       </div>
+
+      {/* Mobile search panel */}
+      {showMobileSearch && (
+        <div className="md:hidden px-4 pb-3 border-t border-slate-100 bg-white">
+          <div className="flex items-center gap-2 mt-3">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search wires, cables, switchgear..."
+              className="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { performSearch(searchQuery); setShowMobileSearch(false); } }}
+            />
+            <button
+              onClick={() => { performSearch(searchQuery); setShowMobileSearch(false); }}
+              className="bg-brand-green text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-green-mid transition-colors"
+            >
+              Go
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

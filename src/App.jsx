@@ -239,6 +239,7 @@ const App = () => {
                   setSearchQuery={setSearchQuery}
                   compareList={compareList}
                   setCompareList={setCompareList}
+                  setShowLoginModal={setShowLoginModal}
                 />
               )}
               {view === 'all_products' && (
@@ -269,10 +270,10 @@ const App = () => {
                   addReview={addReview}
                 />
               )}
-              {view === 'profile' && <ProfilePage savedProjects={savedProjects} addresses={addresses} />}
-              {view === 'admin_dashboard' && <AdminDashboard />}
+              {view === 'profile' && <ProfilePage savedProjects={savedProjects} addresses={addresses} setAddresses={setAddresses} setView={setView} />}
+              {view === 'admin_dashboard' && <AdminDashboard products={products} />}
               {view === 'about_us' && <AboutUs />}
-              {view === 'quick_order' && <QuickOrder setCart={setCart} setIsCartOpen={setIsCartOpen} />}
+              {view === 'quick_order' && <QuickOrder setCart={setCart} setIsCartOpen={setIsCartOpen} products={products} getPrice={getPrice} />}
               {view === 'smart_planner' && <SmartPlanner products={products} addToCart={addToCart} />}
             </div>
             <Footer setView={setView} />
@@ -330,7 +331,15 @@ const App = () => {
               >
                 <Save size={15} /> Save as Project
               </button>
-              <button className="w-full btn-primary py-3 text-sm">
+              <button
+                className="w-full btn-primary py-3 text-sm"
+                onClick={() => {
+                  if (!isLoggedIn) { setIsCartOpen(false); setShowLoginModal(true); return; }
+                  alert(`Order placed! Total: ₹${cart.reduce((a, b) => a + (b.frozenPrice * b.qty), 0).toLocaleString()}\n\nOur team will confirm your order within 2 hours.`);
+                  setCart([]);
+                  setIsCartOpen(false);
+                }}
+              >
                 Proceed to Checkout
               </button>
             </div>

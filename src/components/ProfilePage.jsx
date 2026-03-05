@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, History, Save } from 'lucide-react';
 
-const ProfilePage = ({ savedProjects, addresses }) => {
+const ProfilePage = ({ savedProjects, addresses, setAddresses, setView }) => {
   const [activeTab, setActiveTab] = useState('orders');
 
   const tabs = [
@@ -65,7 +65,7 @@ const ProfilePage = ({ savedProjects, addresses }) => {
                     <div className="font-semibold text-slate-900 text-sm">{p.name}</div>
                     <div className="text-xs text-slate-500 mt-1">{p.items} items · {p.date}</div>
                   </div>
-                  <button className="btn-ghost text-sm py-2 px-4">Load</button>
+                  <button className="btn-ghost text-sm py-2 px-4" onClick={() => setView && setView('smart_planner')}>Load</button>
                 </div>
               ))}
             </div>
@@ -86,7 +86,16 @@ const ProfilePage = ({ savedProjects, addresses }) => {
                   </div>
                 </div>
               ))}
-              <button className="btn-secondary text-sm w-full py-3">+ Add New Address</button>
+              <button
+                className="btn-secondary text-sm w-full py-3"
+                onClick={() => {
+                  const name = prompt('Address label (e.g. Site Office):');
+                  const text = prompt('Full address:');
+                  if (name && text && setAddresses) {
+                    setAddresses(prev => [...prev, { id: Date.now(), name, text, type: 'Site' }]);
+                  }
+                }}
+              >+ Add New Address</button>
             </div>
           )}
         </div>

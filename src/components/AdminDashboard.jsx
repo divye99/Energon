@@ -15,7 +15,7 @@ const KPI_CARDS = [
   { label: 'Active Contractors', value: '450', icon: Users, color: 'text-purple-600 bg-purple-50' },
 ];
 
-const AdminDashboard = () => (
+const AdminDashboard = ({ products = [] }) => (
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
     <div className="flex items-center gap-3 mb-8">
       <LayoutDashboard size={22} className="text-brand-green" />
@@ -53,11 +53,42 @@ const AdminDashboard = () => (
       </div>
     </div>
 
-    {/* Products table placeholder */}
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-      <h3 className="font-semibold text-slate-900 mb-4">Product Management</h3>
-      <div className="text-center py-10 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">
-        <p className="text-sm">Product management table coming soon</p>
+    {/* Products table */}
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 className="font-semibold text-slate-900">Product Catalogue ({products.length})</h3>
+        <span className="text-xs text-slate-400 font-medium">Supabase — live data</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-50 text-left">
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Brand</th>
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Category</th>
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Rating</th>
+              <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Type</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {products.map(p => (
+              <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-3 font-medium text-slate-900 max-w-[220px] truncate">{p.name}</td>
+                <td className="px-6 py-3 text-slate-500">{p.brand}</td>
+                <td className="px-6 py-3">
+                  <span className="inline-block text-xs font-semibold bg-brand-green-light text-brand-green-dark px-2 py-0.5 rounded-full">{p.category}</span>
+                </td>
+                <td className="px-6 py-3 text-slate-500">⭐ {p.rating}</td>
+                <td className="px-6 py-3">
+                  {p.isDynamic
+                    ? <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">LME Linked</span>
+                    : <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Fixed</span>
+                  }
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

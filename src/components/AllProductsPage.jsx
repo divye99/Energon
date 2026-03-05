@@ -2,7 +2,7 @@ import React from 'react';
 import { Package } from 'lucide-react';
 import ProductCard from './ProductCard';
 
-const CATEGORIES = ['All', 'Wires & Cables', 'Switchgear', 'Metals', 'Polymers'];
+const CATEGORIES = ['All', 'Wires & Cables', 'Switchgear', 'Panel Accessories', 'Metals', 'Polymers'];
 
 const AllProductsPage = ({ products, searchQuery, setSearchQuery, setView, getPrice, isLoggedIn, setActiveProductId, compareList, setCompareList }) => {
   const [activeCategory, setActiveCategory] = React.useState('All');

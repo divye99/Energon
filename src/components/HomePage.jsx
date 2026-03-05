@@ -40,7 +40,7 @@ const VALUE_PROPS = [
   },
 ];
 
-const HomePage = ({ setView, products, loading, getPrice, isLoggedIn, setActiveProductId, lmeUsd, compareList, setCompareList }) => (
+const HomePage = ({ setView, products, loading, getPrice, isLoggedIn, setActiveProductId, lmeUsd, compareList, setCompareList, setShowLoginModal }) => (
   <div className="animate-fade-in">
 
     {/* Hero */}
@@ -235,7 +235,7 @@ const HomePage = ({ setView, products, loading, getPrice, isLoggedIn, setActiveP
             <p className="text-slate-500 text-sm mb-5 leading-relaxed">
               Get up to ₹25 Lakhs instant credit line via Rupifi. No collateral. 14-day interest-free for verified contractors.
             </p>
-            <button className="btn-primary text-sm">Check Eligibility →</button>
+            <button className="btn-primary text-sm" onClick={() => setShowLoginModal(true)}>Check Eligibility →</button>
           </div>
 
           <div className="bg-slate-50 rounded-xl p-8 border border-slate-200">
@@ -246,7 +246,7 @@ const HomePage = ({ setView, products, loading, getPrice, isLoggedIn, setActiveP
             <p className="text-slate-500 text-sm mb-5 leading-relaxed">
               Join our Verified Supplier Program. Reach 5,000+ contractors across Delhi NCR and Mumbai. ISI/BIS certification required.
             </p>
-            <button className="btn-secondary text-sm">Apply to Sell →</button>
+            <a href="mailto:suppliers@energon.in?subject=Supplier%20Application" className="btn-secondary text-sm inline-block">Apply to Sell →</a>
           </div>
         </div>
       </div>

@@ -199,7 +199,7 @@ const ProductDetailPage = ({ product, getPrice, isLoggedIn, addToCart, setShowLo
                     const rel = products.find(p => p.id === relId);
                     if (!rel) return null;
                     return (
-                      <div key={relId} className="flex items-center gap-3 bg-white p-2 rounded-lg border border-blue-100 cursor-pointer hover:shadow-sm transition" onClick={() => setActiveProductId(relId)}>
+                      <div key={relId} className="flex items-center gap-3 bg-white p-2 rounded-lg border border-blue-100 cursor-pointer hover:shadow-sm transition" onClick={() => { setActiveProductId(relId); setView('product_detail'); }}>
                         <img src={rel.images?.[0] || ''} className="w-9 h-9 object-contain" alt="" />
                         <div className="flex-1">
                           <div className="text-xs font-semibold text-slate-800 line-clamp-1">{rel.name}</div>
@@ -254,7 +254,7 @@ const ProductDetailPage = ({ product, getPrice, isLoggedIn, addToCart, setShowLo
                     Login to Purchase
                   </button>
                 )}
-                <button className="w-full btn-secondary py-3 text-sm">
+                <button className="w-full btn-secondary py-3 text-sm" onClick={() => setView('quick_order')}>
                   Get Quote for Bulk Order
                 </button>
               </div>

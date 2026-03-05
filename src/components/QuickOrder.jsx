@@ -1,24 +1,39 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
-const QuickOrder = ({ setCart, setIsCartOpen }) => {
+const QuickOrder = ({ setCart, setIsCartOpen, products = [], getPrice }) => {
   const [rows, setRows] = useState([{ id: 1, sku: '', qty: 1 }]);
 
   const addRow = () => setRows(prev => [...prev, { id: Date.now(), sku: '', qty: 1 }]);
   const updateRow = (id, field, value) => setRows(rows.map(r => r.id === id ? { ...r, [field]: value } : r));
   const removeRow = (id) => setRows(rows.filter(r => r.id !== id));
 
+  const findProduct = (sku) => {
+    const q = sku.trim().toLowerCase();
+    return products.find(p =>
+      p.id.toLowerCase() === q ||
+      p.name.toLowerCase().includes(q) ||
+      p.brand.toLowerCase().includes(q)
+    );
+  };
+
   const handleQuickAdd = () => {
     const validRows = rows.filter(r => r.sku.trim());
-    if (validRows.length === 0) return alert('Please enter at least one SKU');
-    setCart(prev => [...prev, ...validRows.map(r => ({
-      id: `quick_${r.id}`,
-      name: `Quick Add (${r.sku})`,
-      qty: parseInt(r.qty) || 1,
-      frozenPrice: 0,
-      images: [''],
-      cartId: `quick_${r.id}`,
-    }))]);
+    if (validRows.length === 0) return alert('Please enter at least one SKU or product name');
+    const items = validRows.map(r => {
+      const match = findProduct(r.sku);
+      return {
+        id: match ? match.id : `quick_${r.id}`,
+        name: match ? match.name : `Custom SKU: ${r.sku}`,
+        qty: parseInt(r.qty) || 1,
+        frozenPrice: match && getPrice ? getPrice(match, 'wholesale') : 0,
+        images: match ? match.images : [''],
+        cartId: `quick_${r.id}`,
+        brand: match ? match.brand : '',
+        unit: match ? match.unit : 'Unit',
+      };
+    });
+    setCart(prev => [...prev, ...items]);
     setIsCartOpen(true);
   };
 
